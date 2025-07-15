@@ -164,20 +164,25 @@ def query_issue_tree_graphql(project_full_path, issue_iid):
     return response.json()
 
 
-def print_workitem_hierarchy(workitem, indent=0):
+def print_workitem_hierarchy(workitem, indent=0, lines=None):
+    if lines is None:
+        lines = []
     prefix = "    " * indent + "- "
     wtype = workitem.get("workItemType", {}).get("name", "?")
     title = workitem.get("title", "")
     iid = workitem.get("iid", "")
     state = workitem.get("state", "")
-    print(f"{prefix}[{wtype}] #{iid} | 상태: {state} | {title}")
+    line = f"{prefix}[{wtype}] #{iid} | 상태: {state} | {title}"
+    print(line)
+    lines.append(line)
     # HIERARCHY 위젯에서 children 재귀 출력
     widgets = workitem.get("widgets", [])
     for widget in widgets:
         if widget.get("type") == "HIERARCHY":
             children = widget.get("children", {}).get("nodes", [])
             for child in children:
-                print_workitem_hierarchy(child, indent + 1)
+                print_workitem_hierarchy(child, indent + 1, lines=lines)
+    return lines
 
 
 def get_all_issue_gids(project_full_path, page_size=100):
@@ -298,8 +303,12 @@ if __name__ == "__main__":
     project_full_path = os.getenv("PROJECT_FULL_PATH") or "epp/edr"
     my_username = os.getenv("GITLAB_USERNAME")
     print("[GraphQL HIERARCHY] 나에게 할당된 이슈/태스크 트리:")
+    output_lines = ["[GraphQL HIERARCHY] 나에게 할당된 이슈/태스크 트리:"]
     my_gids = get_my_issue_gids(project_full_path, my_username, page_size=100)
     print(f"총 {len(my_gids)}건")
+    output_lines.append(f"총 {len(my_gids)}건")
     for gid in my_gids:
         workitem = fetch_workitem_hierarchy(gid, page_size=100)
-        print_workitem_hierarchy(workitem)
+        print_workitem_hierarchy(workitem, lines=output_lines)
+    with open("my_gitlab_tasks.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(output_lines))
