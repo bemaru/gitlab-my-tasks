@@ -296,7 +296,7 @@ def get_my_issue_gids(project_full_path, my_username, page_size=100):
 
 if __name__ == "__main__":
     project_full_path = os.getenv("PROJECT_FULL_PATH") or "epp/edr"
-    my_username = os.getenv("GITLAB_USERNAME") or "jhkwak"
+    my_username = os.getenv("GITLAB_USERNAME")
     print("[GraphQL HIERARCHY] 나에게 할당된 이슈/태스크 트리:")
     my_gids = get_my_issue_gids(project_full_path, my_username, page_size=100)
     for gid in my_gids:
