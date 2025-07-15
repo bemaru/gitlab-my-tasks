@@ -172,7 +172,8 @@ def print_workitem_hierarchy(workitem, indent=0, lines=None):
     title = workitem.get("title", "")
     iid = workitem.get("iid", "")
     state = workitem.get("state", "")
-    line = f"{prefix}[{wtype}] #{iid} | 상태: {state} | {title}"
+    created_at = workitem.get("createdAt", "").split("T")[0]  # YYYY-MM-DD 형식으로 변환
+    line = f"{prefix}[{wtype}] #{iid} | {state} | {created_at} | {title}"
     print(line)
     lines.append(line)
     # HIERARCHY 위젯에서 children 재귀 출력
@@ -225,6 +226,7 @@ def fetch_workitem_hierarchy(issue_gid, page_size=100):
       iid
       title
       state
+      createdAt
       workItemType { name }
       widgets {
         type
@@ -237,6 +239,7 @@ def fetch_workitem_hierarchy(issue_gid, page_size=100):
               iid
               title
               state
+              createdAt
               workItemType { name }
               widgets {
                 type
@@ -249,6 +252,7 @@ def fetch_workitem_hierarchy(issue_gid, page_size=100):
                       iid
                       title
                       state
+                      createdAt
                       workItemType { name }
                     }
                   }
