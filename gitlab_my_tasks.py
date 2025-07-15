@@ -314,13 +314,45 @@ if __name__ == "__main__":
     print(f"총 {len(my_gids)}건")
     output_lines.append(f"총 {len(my_gids)}건")
     root_workitems = []
+    all_task_iids = set()
+    all_tree_task_iids = set()
+    orphan_tasks = []
+    # 1. 루트 이슈만 수집
     for gid in my_gids:
         workitem = fetch_workitem_hierarchy(gid, page_size=100)
-        if not workitem.get("parent"):  # parent가 없는 것만 루트로 출력
+        wtype = workitem.get("workItemType", {}).get("name", "")
+        if not workitem.get("parent") and wtype == "Issue":
             root_workitems.append(workitem)
-    # 생성일 오름차순 정렬
+
+    # 2. 트리 출력 및 트리 내 모든 task iid 수집
+    def collect_tree_task_iids(workitem):
+        widgets = workitem.get("widgets", [])
+        for widget in widgets:
+            if widget.get("type") == "HIERARCHY":
+                children = widget.get("children", {}).get("nodes", [])
+                for child in children:
+                    ctype = child.get("workItemType", {}).get("name", "")
+                    if ctype == "Task":
+                        all_tree_task_iids.add(child.get("iid"))
+                    collect_tree_task_iids(child)
+
     root_workitems_sorted = sorted(root_workitems, key=lambda x: x.get("createdAt", ""))
     for workitem in root_workitems_sorted:
         print_workitem_hierarchy(workitem, lines=output_lines)
+        collect_tree_task_iids(workitem)
+    # 3. 모든 나에게 할당된 task 중 트리에 포함되지 않은 orphan task 출력
+    for gid in my_gids:
+        workitem = fetch_workitem_hierarchy(gid, page_size=100)
+        wtype = workitem.get("workItemType", {}).get("name", "")
+        if wtype == "Task":
+            all_task_iids.add(workitem.get("iid"))
+            if workitem.get("iid") not in all_tree_task_iids:
+                orphan_tasks.append(workitem)
+    if orphan_tasks:
+        print("\n[ORPHAN TASKS] 트리에 포함되지 않은 단독 Task:")
+        output_lines.append("\n[ORPHAN TASKS] 트리에 포함되지 않은 단독 Task:")
+        orphan_tasks_sorted = sorted(orphan_tasks, key=lambda x: x.get("createdAt", ""))
+        for task in orphan_tasks_sorted:
+            print_workitem_hierarchy(task, indent=0, lines=output_lines)
     with open("my_gitlab_tasks.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(output_lines))
