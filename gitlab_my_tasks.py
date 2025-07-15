@@ -267,10 +267,38 @@ def fetch_workitem_hierarchy(issue_gid, page_size=100):
     return data["data"]["workItem"]
 
 
+def get_my_issue_gids(project_full_path, my_username, page_size=100):
+    url = f"{GITLAB_URL}/api/graphql"
+    query = f"""
+    query {{
+      project(fullPath: "{project_full_path}") {{
+        issues(first: {page_size}, assigneeUsernames: ["{my_username}"]) {{
+          nodes {{
+            id
+            iid
+            title
+            state
+          }}
+        }}
+      }}
+    }}
+    """
+    response = requests.post(
+        url,
+        headers={"PRIVATE-TOKEN": PRIVATE_TOKEN},
+        json={"query": query},
+        verify=False,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return [node["id"] for node in data["data"]["project"]["issues"]["nodes"]]
+
+
 if __name__ == "__main__":
     project_full_path = os.getenv("PROJECT_FULL_PATH") or "epp/edr"
-    print("[GraphQL HIERARCHY] 전체 이슈/태스크 트리:")
-    all_gids = get_all_issue_gids(project_full_path, page_size=100)
-    for gid in all_gids:
+    my_username = os.getenv("GITLAB_USERNAME") or "jhkwak"
+    print("[GraphQL HIERARCHY] 나에게 할당된 이슈/태스크 트리:")
+    my_gids = get_my_issue_gids(project_full_path, my_username, page_size=100)
+    for gid in my_gids:
         workitem = fetch_workitem_hierarchy(gid, page_size=100)
         print_workitem_hierarchy(workitem)
