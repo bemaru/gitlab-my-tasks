@@ -177,12 +177,13 @@ def print_workitem_hierarchy(workitem, indent=0, lines=None):
     line = f"{prefix}[{wtype}] #{iid} | 상태: {state}{created_str} | {title}"
     print(line)
     lines.append(line)
-    # HIERARCHY 위젯에서 children 재귀 출력
+    # HIERARCHY 위젯에서 children 재귀 출력 (생성일 오름차순 정렬)
     widgets = workitem.get("widgets", [])
     for widget in widgets:
         if widget.get("type") == "HIERARCHY":
             children = widget.get("children", {}).get("nodes", [])
-            for child in children:
+            children_sorted = sorted(children, key=lambda x: x.get("createdAt", ""))
+            for child in children_sorted:
                 print_workitem_hierarchy(child, indent + 1, lines=lines)
     return lines
 
@@ -312,8 +313,14 @@ if __name__ == "__main__":
     my_gids = get_my_issue_gids(project_full_path, my_username, page_size=100)
     print(f"총 {len(my_gids)}건")
     output_lines.append(f"총 {len(my_gids)}건")
+    root_workitems = []
     for gid in my_gids:
         workitem = fetch_workitem_hierarchy(gid, page_size=100)
+        if not workitem.get("parent"):  # parent가 없는 것만 루트로 출력
+            root_workitems.append(workitem)
+    # 생성일 오름차순 정렬
+    root_workitems_sorted = sorted(root_workitems, key=lambda x: x.get("createdAt", ""))
+    for workitem in root_workitems_sorted:
         print_workitem_hierarchy(workitem, lines=output_lines)
     with open("my_gitlab_tasks.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(output_lines))
