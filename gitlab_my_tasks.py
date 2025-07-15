@@ -170,7 +170,7 @@ def print_workitem_hierarchy(workitem, indent=0):
     title = workitem.get("title", "")
     iid = workitem.get("iid", "")
     state = workitem.get("state", "")
-    print(f"{prefix}[{wtype}] {title} (#{iid}) | 상태: {state}")
+    print(f"{prefix}[{wtype}] #{iid} | 상태: {state} | {title}")
     # HIERARCHY 위젯에서 children 재귀 출력
     widgets = workitem.get("widgets", [])
     for widget in widgets:
@@ -299,6 +299,7 @@ if __name__ == "__main__":
     my_username = os.getenv("GITLAB_USERNAME")
     print("[GraphQL HIERARCHY] 나에게 할당된 이슈/태스크 트리:")
     my_gids = get_my_issue_gids(project_full_path, my_username, page_size=100)
+    print(f"총 {len(my_gids)}건")
     for gid in my_gids:
         workitem = fetch_workitem_hierarchy(gid, page_size=100)
         print_workitem_hierarchy(workitem)
